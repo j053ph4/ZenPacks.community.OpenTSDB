@@ -18,10 +18,10 @@ def putMQ(self, server, queueName, msg):
         channel = connection.channel()
         channel.queue_declare(queue=queueName)
         channel.basic_publish(exchange='', routing_key=queueName,body=msg)
+        channel.close()
         connection.close()
     except:
         pass
-
 
 @monkeypatch('Products.ZenCollector.daemon.CollectorDaemon')
 def pushToQueue(self, timestamp, value, path):
@@ -106,7 +106,7 @@ else:
         value = self._rrd.save(path,
                                value,
                                rrdType,
-                               rrdCommand,
+                                rrdCommand,
                                cycleTime,
                                min,
                                max)
@@ -127,6 +127,7 @@ else:
             channel = connection.channel()
             channel.queue_declare(queue=queueName)
             channel.basic_publish(exchange='', routing_key=queueName,body=msg)
+            channel.close()
             connection.close()
         except:
             pass
@@ -222,6 +223,7 @@ RRD create command: %s""" % \
             channel = connection.channel()
             channel.queue_declare(queue=queueName)
             channel.basic_publish(exchange='', routing_key=queueName,body=msg)
+            channel.close()
             connection.close()
         except:
             pass

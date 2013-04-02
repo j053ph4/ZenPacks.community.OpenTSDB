@@ -29,9 +29,9 @@ class ZenOpenTSDBPreferences(object):
         self.collectorName = 'zenopentsdb'
         self.configurationService = "ZenPacks.community.OpenTSDB.services.OpenTSDBService"
         # How often the daemon will collect each device. Specified in seconds.
-        self.cycleInterval = 2 * 60
+        self.cycleInterval = 5 * 60
         # How often the daemon will reload configuration. In seconds.
-        self.configCycleInterval = 5 * 60
+        self.configCycleInterval = 30  #minutes
         self.options = None
 
     def buildOptions(self, parser):
@@ -136,10 +136,18 @@ class ZenOpenTSDBTask(ObservableMixin):
         '''
         log.debug("_collectCleanup")
         self.state = TaskStates.STATE_CLEANING
-        self._tsd.close()
-        self._connection.close()
+        self.close()
         return defer.succeed(None)
     
+    def close(self):
+        '''
+        '''
+        try:
+            self._tsd.close()
+            self._connection.close()
+        except:
+            pass
+        
     def _failure(self, result):
         '''
             Errback for an unsuccessful asynchronous connection or collection
@@ -149,6 +157,7 @@ class ZenOpenTSDBTask(ObservableMixin):
         err = result.getErrorMessage()
         log.error("Failed with error: %s" % err)
         self._eventService.sendEvent(ZenOpenTSDBTask.WARNING_EVENT, device=self.configId, summary="Error collecting performance data: %s" % err)
+        self.close()
         return result
     
     def _finished(self, result):
