@@ -31,7 +31,7 @@ class ZenOpenTSDBPreferences(object):
         # How often the daemon will collect each device. Specified in seconds.
         self.cycleInterval = 5 * 60
         # How often the daemon will reload configuration. In seconds.
-        self.configCycleInterval = 30  #minutes
+        self.configCycleInterval = 12 * 5 * 60
         self.options = None
 
     def buildOptions(self, parser):
