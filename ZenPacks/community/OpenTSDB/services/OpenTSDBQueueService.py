@@ -1,16 +1,16 @@
 """
-OpenTSDBService
-ZenHub service for providing configuration to the zenopentsdb collector daemon.
+OpenTSDBQueueService
+ZenHub service for providing configuration to the zenopentsdbqueue collector daemon.
     This provides the daemon with a dictionary of datapoints for every device.
 """
 import logging
-log = logging.getLogger('zen.zenopentsdb')
+log = logging.getLogger('zen.zenopentsdbqueue')
 
 import Globals,re
 from Products.ZenCollector.services.config import CollectorConfigService
 
 
-class OpenTSDBService(CollectorConfigService):
+class OpenTSDBQueueService(CollectorConfigService):
     """
     ZenHub service for the zenopentsdb collector daemon.
     """
@@ -28,27 +28,22 @@ class OpenTSDBService(CollectorConfigService):
     def _createDeviceProxy(self, device):
         log.debug('creating proxy for %s' % device.id)
         proxy = CollectorConfigService._createDeviceProxy(self, device,)
-        
-        proxy.configCycleInterval = 300
-        proxy.cycleInterval = 300
+        proxy.configCycleInterval = 600
         
         proxy.datapoints = []
         proxy.tsdbServer = device.zOpenTSDBServer
         proxy.tsdbPort = device.zOpenTSDBPort
         perfServer = device.getPerformanceServer()
         proxy.mqServer = perfServer.id
-        
+        proxy.primary_url_path = device.getPrimaryUrlPath()
         self._getDataPoints(proxy, device, device.id, None, perfServer)
         
         for component in device.getMonitoredComponents():
             self._getDataPoints( proxy, component, component.device().id, component.id, perfServer)
-
-        log.debug("found %d datapoints" % len(proxy.datapoints))
         
+        log.debug("found %d datapoints" % len(proxy.datapoints))
         return proxy
-
-    # This is not a method you must implement. It is used by the custom
-    # _createDeviceProxy method above.
+    
     def _getDataPoints(self, proxy, deviceOrComponent, deviceId, componentId, perfServer):
         #log.debug("getting datapoints for object %s " % deviceOrComponent)
         for template in deviceOrComponent.getRRDTemplates():
@@ -61,13 +56,12 @@ class OpenTSDBService(CollectorConfigService):
                     path = '/'.join((deviceOrComponent.rrdPath(), dp.name()))
                     basename = "%s.%s" % (ds.id,dp.id)
                     metricname = re.sub(' ','_', basename)
-                    #metricNameB = re.sub(' ','_',dp.name())
                     dpInfo = dict(
                         tpId = template.id,
-                        devId=deviceId,
-                        compId=componentId,
-                        dsId=ds.id,
-                        dpId=dp.id,
+                        devId = deviceId,
+                        compId = componentId,
+                        dsId = ds.id,
+                        dpId = dp.id,
                         metadata = {
                                     'name': metricname,
                                     'tags' : {
@@ -84,17 +78,16 @@ class OpenTSDBService(CollectorConfigService):
                         minv=dp.rrdmin,
                         maxv=dp.rrdmax,
                         )
-
                     if componentId:
+                        dpInfo['metadata']['tags']['metatype'] = deviceOrComponent.meta_type
                         dpInfo['metadata']['tags']['component'] = re.sub(' ','_',str(componentId))
                         dpInfo['componentDn'] = getattr(
                             deviceOrComponent, 'dn', None)
-                    #log.debug("%s\n" % dpInfo)
                     proxy.datapoints.append(dpInfo)
 
 if __name__ == '__main__':
     from Products.ZenHub.ServiceTester import ServiceTester
-    tester = ServiceTester(OpenTSDBService)
+    tester = ServiceTester(OpenTSDBQueueService)
     def printer(config):
         print config.datapoints
     tester.printDeviceProxy = printer

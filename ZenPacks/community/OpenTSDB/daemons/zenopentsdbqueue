@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-DAEMON_NAME="zenopentsdb"
+DAEMON_NAME="zenopentsdbqueue"
 
 . $ZENHOME/bin/zenfunctions
 
